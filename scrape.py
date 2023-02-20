@@ -22,23 +22,38 @@ fumbles2018_url = 'https://www.nfl.com/stats/player-stats/category/fumbles/2018/
 # ----------------------------------------------------------------
 
 
-# GET DATA FROM NEXT PAGE - Assumes 
+# GET DATA FROM NEXT PAGE
 # ----------------------------------------------------------------
 def getNextPageString( ):
    return formatString( getNextPageTable( ) )
 
 def getNextPageTable( ):
+   global htmlObject
+   
    if htmlObject == None:
-      # If there is no table loaded, default to the home page
-      print( 'GetNextPageTable called before there is a current page' )
-      return getTableFromURL( qbscurrent_url )
+      # If there is no table loaded, return error
+      print( 'getNextPageTable called with no current page' )
+      return None
    
    # Find the link of the 'Next Page' button
    footer = htmlObject.find( 'footer', 'd3-o-table__footer')
+   if footer == None:
+      return None
    url = footer.find_next( 'link' )[ 'href' ]
+   if url == None:
+      return None
    
    # Return the table found by this url
-   return getTableFromURL( url )
+   return getPageFromURL( url )
+
+# Appends the rows of the second table to the first table
+def extendTableWithoutFirstRow( firstTable, secondTable ):
+   for rowIndex, row in enumerate( secondTable ):
+      if rowIndex != 0:
+         firstTable.append( row )
+      
+   return firstTable
+# ----------------------------------------------------------------
 
 # SEND GET REQUEST FOR RAW DATA DOWNLOAD AND PARSING
 # ----------------------------------------------------------------
@@ -46,16 +61,24 @@ def getStringFromURL( url ):
    return formatString( getTableFromURL( url ) )
 
 def getTableFromURL( url ):
+   table = getPageFromURL( url )
+   
+   # Add on stats from all pages
+   nextPageTable = getNextPageTable( )
+   while nextPageTable != None:
+      if int( nextPageTable[ 1 ][ 1 ] ) > 0:
+         table = extendTableWithoutFirstRow( table, nextPageTable )
+         nextPageTable = getNextPageTable( )
+      else:
+         # Unnecessary stats where the first row has 0
+         break
+   
+   return table
+   
+def getPageFromURL( url ):
    # Retrieve data
    response = requests.get( url )
    
-   return extractTableFromResponse( response )
-# ----------------------------------------------------------------
-
-# GET TABLE FROM RESPONSE
-# ----------------------------------------------------------------
-def extractTableFromResponse( response ): 
-   # Set global variable to hold this HTML parsing object
    global htmlObject
    htmlObject = BeautifulSoup( response.text, 'html.parser' )
 
@@ -66,30 +89,31 @@ def extractTableFromResponse( response ):
    headers = table.find_next( 'thead' )
    stats = table.find_next( 'tbody' )
 
-   statMatrix = [ [ ] ]
+   pageTable = [ [ ] ]
    for i, header in enumerate( headers.select( '.header' ) ):
-      statMatrix[ 0 ].append( header.text )
+      pageTable[ 0 ].append( header.text )
 
    # Get a list of players (name + stats)
    players = stats.select( 'tr ')
 
    for i, player in enumerate( players ):
       # Add a new row for this player's stats
-      statMatrix.append( [ ] )
+      pageTable.append( [ ] )
       
       # Add each stat to the new row
       for index, stat in enumerate( player.find_all( 'td' ) ):
+         pageTable[ i+1 ].append( stat.text )
 
-         # TEMPORARY only collect 10 attributes
-         # if index < 10:
-            statMatrix[ i+1 ].append( stat.text )
-            
-   return statMatrix
+   return pageTable
 # ----------------------------------------------------------------
       
 # FORMATTING
 # ----------------------------------------------------------------
 def formatString( statMatrix ):
+   if statMatrix == None:
+      print( 'None' )
+      return None
+   
    formatString = ''
 
    for rowIndex, row in enumerate( statMatrix ):
