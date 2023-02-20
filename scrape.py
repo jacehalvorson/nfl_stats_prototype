@@ -1,15 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
-
-# CONSTANTS
-# ----------------------------------------------------------------
-TXT = 0
-CSV = 1
-XLSB = 2
-
-MAX_NAME_LENGTH = 15
-# ----------------------------------------------------------------
 
 # Global variables
 # ----------------------------------------------------------------
@@ -24,6 +14,8 @@ fumbles2018_url = 'https://www.nfl.com/stats/player-stats/category/fumbles/2018/
 
 # GET DATA FROM NEXT PAGE
 # ----------------------------------------------------------------
+# isTableRequested == True - Send a request to the next page and retrieve the stats
+# isTableRequested == False - Just return the url of the next page
 def getNextPage( isTableRequested ):
    global htmlObject
    
@@ -48,18 +40,13 @@ def getNextPage( isTableRequested ):
 
 # Appends the rows of the second table to the first table
 def extendTableWithoutFirstRow( firstTable, secondTable ):
-   for rowIndex, row in enumerate( secondTable ):
-      if rowIndex != 0:
-         firstTable.append( row )
+   firstTable.extend( secondTable[ 1: ] )
       
    return firstTable
 # ----------------------------------------------------------------
 
 # SEND GET REQUEST FOR RAW DATA DOWNLOAD AND PARSING
 # ----------------------------------------------------------------
-def getStringFromURL( url ):
-   return formatString( getTableFromURL( url ) )
-
 def getTableFromURL( url ):
    table = getPageFromURL( url )
    
@@ -90,74 +77,22 @@ def getPageFromURL( url ):
    stats = table.find_next( 'tbody' )
 
    pageTable = [ [ ] ]
-   for i, header in enumerate( headers.select( '.header' ) ):
+   for header in headers.select( '.header' ):
       pageTable[ 0 ].append( header.text )
 
    # Get a list of players (name + stats)
-   players = stats.select( 'tr ')
+   players = stats.select( 'tr' )
 
-   for i, player in enumerate( players ):
+   for rowIndex, player in enumerate( players ):
       # Add a new row for this player's stats
       pageTable.append( [ ] )
       
       # Add each stat to the new row
-      for index, stat in enumerate( player.find_all( 'td' ) ):
-         pageTable[ i+1 ].append( stat.text )
+      for colIndex, stat in enumerate( player.find_all( 'td' ) ):
+         if colIndex == 0:
+            pageTable[ rowIndex+1 ].append( stat.text[ 1:-1 ] )
+         else:
+            pageTable[ rowIndex+1 ].append( stat.text )
 
    return pageTable
-# ----------------------------------------------------------------
-      
-# FORMATTING
-# ----------------------------------------------------------------
-def formatString( statMatrix ):
-   if statMatrix == None:
-      print( 'None' )
-      return None
-   
-   formatString = ''
-
-   for rowIndex, row in enumerate( statMatrix ):
-      # Newline if it's not the first line
-      formatString = ( formatString ) + '\n' if rowIndex > 0 else formatString
-      
-      for col, cell in enumerate( row ):
-         if col == 0 and rowIndex == 1:
-            # Add space between titles and stats
-            formatString += '\n'
-            
-         if col == 0 and rowIndex != 0:
-            # Player names come with a preceding space so remove it
-            cellString = str( cell )[ 1: ]
-         else:
-            cellString = str( cell )
-            
-         if col == 14:
-            # Only display 13 attributes
-            break
-         
-         if col == 0 and len( cellString ) < MAX_NAME_LENGTH:
-            succeedingWhitespace = ( ' ' * ( MAX_NAME_LENGTH - len( cellString ) ) ) + '\t'
-         else:
-            succeedingWhitespace = '\t'
-            
-         formatString += ( cellString + succeedingWhitespace )
-      
-   return formatString
-# ----------------------------------------------------------------
-
-
-# FILE WRITING
-# ----------------------------------------------------------------
-def writeToFile( fileType, string ):
-   if fileType == TXT:
-      with open( 'stats.txt', 'w' ) as file:
-         file.write( string )
-         file.write( '\n' )
-         file.close( )
-   elif fileType == CSV:
-      print( 'Not yet implemented' )
-   elif fileType == XLSB:
-      print( 'Not yet implemented' )
-   else:
-      print( f'Invalid file type {fileType}' )
 # ----------------------------------------------------------------

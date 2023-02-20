@@ -1,5 +1,6 @@
 import customtkinter
 from scrape import *
+from export import *
 from math import floor
 
 # Constants
@@ -17,9 +18,8 @@ buttonsActive = False
 # Dropdown options
 # ----------------------------------------------------------------
 fileTypes = [
-   '.txt',
    '.csv',
-   '.xlsb'
+   '.txt'
 ]
 fileTypeSelected = fileTypes[ 0 ]
 
@@ -48,7 +48,7 @@ def placeholderCommand( ):
 def fileTypeDropdownCallback( choice ):
    global fileTypeSelected
    fileTypeSelected = choice
-   
+
 def yearDropdownCallback( choice ):
    global yearSelected
    yearSelected = choice
@@ -74,6 +74,7 @@ def pageChangeCallback( pageChange ):
    pageDisplay.configure( text=( str( currentPage ) + ' of ' + str( numberOfPages ) ) )
 
    updateStats( currentStats, currentPage )
+   # resizeWindow( )
 
 def loadCallback( categorySelected, yearSelected, window ):
    if buttonsActive == False:
@@ -119,14 +120,21 @@ def loadCallback( categorySelected, yearSelected, window ):
    # Build the url for the request
    requestedUrl = BASE_URL + category + '/' + str( yearSelected ) + '/post/all/' + sortBy + '/desc'
    
-   displayPage( getPageFromURL( requestedUrl )  )
-   window.after( 1000, loadPages )
+   displayPage( getPageFromURL( requestedUrl ) )
+   window.after( 750, loadPages )
 
-def downloadCallback( ):
-   if buttonsActive == False:
+def downloadCallback( fileNameEntry ):
+   global fileTypeSelected
+   global currentStats
+   print( f'Downloading {fileNameSelected.get( )}{fileTypeSelected}' )
+
+   if buttonsActive == False or fileTypeSelected not in fileTypes:
       return
    
-   print( 'Download not implemented' )
+   if writeToFile( fileTypeSelected, fileNameSelected.get( ), currentStats ) == True:
+      print( 'Download succeeded' )
+   else:
+      print( 'Download failed' )
 
 def sortCallback( ):
    if buttonsActive == False:
@@ -146,12 +154,12 @@ def displayPage( firstPage ):
    updateStats( firstPage, currentPage )
 
    pageDisplay.configure( text='1 of 1' )
+   fileNameSelected.set( categorySelected + str( yearSelected ) )
    
    currentStats = firstPage
    
 def loadPages( ):
    global currentStats
-   global currentPage
    global numberOfPages
    global rowsDisplayed
    global buttonsActive
@@ -162,13 +170,20 @@ def loadPages( ):
    
    numberOfPages = int( floor( len( currentStats ) / rowsDisplayed ) )
    pageDisplay.configure( text=( '1 of ' + str( numberOfPages ) ) )
+      
+   buttonsActive = True
+
+def resizeWindow( ):
+   global screenHeight
+   global screenWidth
+   global root
+   global statsFrame
+   global selectionFrame
    
    # Set screen width and height to fit the frame
-   # screenWidth = statsFrame.winfo_width( ) + selectionFrame.winfo_width( ) + 30
-   # screenHeight = statsFrame.winfo_height( ) + 24
-   # root.geometry( str( screenWidth ) + 'x' + str( screenHeight ) )
-   
-   buttonsActive = True
+   screenWidth = statsFrame.winfo_width( ) + selectionFrame.winfo_width( ) + 30
+   screenHeight = statsFrame.winfo_height( ) + 24
+   root.geometry( str( screenWidth ) + 'x' + str( screenHeight ) )
 
 def initTable( table, statsFrame ):
    global tableEntries
@@ -212,7 +227,6 @@ def updateStats( table, currentPage ):
       for colIndex in range( len( table[ 0 ] ) ):
          tableRowIndex = rowIndex + firstRowDisplayed
          if tableRowIndex >= len( table ):
-            print( formatString( table ) )
             return
          
          tableEntries[ rowIndex ][ colIndex ].configure( text=str( table[ tableRowIndex ][ colIndex ] ) )
@@ -226,17 +240,20 @@ def startGUI( defaultStats ):
    customtkinter.set_appearance_mode( 'light' )
    customtkinter.set_default_color_theme( 'green' )
 
+   global root
    root = customtkinter.CTk( )
    root.title( 'Download NFL Stats' )
    root.geometry( str( screenWidth ) + 'x' + str( screenHeight ) )
    
    # Set up groups of buttons
+   global selectionFrame
    selectionFrame = customtkinter.CTkFrame( master=root )
    selectionFrame.grid( row=0, column=0, padx=( 10, 0 ), pady=12, sticky=customtkinter.NW )
    
    downloadFrame = customtkinter.CTkFrame( master=root )
    downloadFrame.grid( row=9, column=0, padx=( 10, 0 ), pady=12, sticky=customtkinter.SW )
    
+   global statsFrame
    statsFrame = customtkinter.CTkFrame( master=root, width=( screenWidth - 175), height=650 )
    statsFrame.grid( row=0, column=1, rowspan=10, padx=10, pady=12, sticky=customtkinter.NW )
    statsFrame.grid_propagate( 0 )
@@ -252,10 +269,15 @@ def startGUI( defaultStats ):
    button.pack( pady=( 12, 12 ), padx=10 )
    
    # Fill the download frame
+   global fileNameSelected
+   fileNameSelected = customtkinter.StringVar( master=downloadFrame, value=( categorySelected + str( yearSelected ) ) )
+   fileNameEntry = customtkinter.CTkEntry( master=downloadFrame, width=buttonWidth, textvariable=fileNameSelected )
+   fileNameEntry.pack( padx=10, pady=( 12, 0 ) )
+   
    dropdown = customtkinter.CTkOptionMenu( master=downloadFrame, width=buttonWidth, values=fileTypes, command=fileTypeDropdownCallback )
    dropdown.pack( padx=10, pady=( 12, 0 ) )
    
-   button = customtkinter.CTkButton( master=downloadFrame, width=buttonWidth, text='Download', command=downloadCallback )
+   button = customtkinter.CTkButton( master=downloadFrame, width=buttonWidth, text='Download', command=lambda:downloadCallback( fileNameEntry ) )
    button.pack( padx=10, pady=12 )
    
    # Fill the stats frame
@@ -275,6 +297,7 @@ def startGUI( defaultStats ):
    
    displayPage( defaultStats )
    
-   root.after( 1000, loadPages )
+   root.after( 50, resizeWindow )
+   root.after( 750, loadPages )
    root.mainloop( )
    
