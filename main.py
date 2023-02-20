@@ -2,7 +2,7 @@ from gui import *
 
 def main( ):
    # Retrieve default stats (passing 2022)
-   table = getTableFromURL( QBS_URL )
+   table = getPageFromURL( QBS_URL )
 
    # Start GUI and pass in function pointers for buttons
    startGUI( table )

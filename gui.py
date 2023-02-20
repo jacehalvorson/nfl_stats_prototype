@@ -1,16 +1,18 @@
 import customtkinter
 from scrape import *
+from math import floor
 
 # Constants
 screenWidth = 1200
-screenHeight = 810
+screenHeight = 750
 buttonWidth = 120
 rowsDisplayed = 20
 
 # Page tracker variables
 currentStats = None
 currentPage = 1
-numberOfPages = 37
+numberOfPages = 1
+buttonsActive = False
 
 # Dropdown options
 # ----------------------------------------------------------------
@@ -60,6 +62,9 @@ def pageChangeCallback( pageChange ):
    global currentStats
    global numberOfPages
    
+   if buttonsActive == False:
+      return
+   
    newPage = currentPage + pageChange
    if newPage < 1 or newPage > numberOfPages:
       # Can't go outside of 1 and max page
@@ -70,7 +75,10 @@ def pageChangeCallback( pageChange ):
 
    updateStats( currentStats, currentPage )
 
-def loadCallback( categorySelected, yearSelected ):
+def loadCallback( categorySelected, yearSelected, window ):
+   if buttonsActive == False:
+      return
+   
    # Find the necessary strings to assemble the url
    if categorySelected == 'Passing':
       category = 'passing'
@@ -111,25 +119,69 @@ def loadCallback( categorySelected, yearSelected ):
    # Build the url for the request
    requestedUrl = BASE_URL + category + '/' + str( yearSelected ) + '/post/all/' + sortBy + '/desc'
    
-   # Update the displayed stats
+   displayPage( getPageFromURL( requestedUrl )  )
+   window.after( 1000, loadPages )
+
+def downloadCallback( ):
+   if buttonsActive == False:
+      return
+   
+   print( 'Download not implemented' )
+
+def sortCallback( ):
+   if buttonsActive == False:
+      return
+
+   print( 'Sort not implemented' )
+
+def displayPage( firstPage ):
    global currentStats
    global currentPage
-   currentStats = getTableFromURL( requestedUrl )
+   global buttonsActive
+   
+   # Disable buttons while data laods
+   buttonsActive = False
+   
    currentPage = 1
-   updateStats( currentStats, currentPage )
+   updateStats( firstPage, currentPage )
+
+   pageDisplay.configure( text='1 of 1' )
+   
+   currentStats = firstPage
+   
+def loadPages( ):
+   global currentStats
+   global currentPage
+   global numberOfPages
+   global rowsDisplayed
+   global buttonsActive
+   
+   # Load the rest of the data
+   nextPageURL = getNextPage( False )
+   currentStats = extendTableWithoutFirstRow( currentStats, getTableFromURL( nextPageURL ) )
+   
+   numberOfPages = int( floor( len( currentStats ) / rowsDisplayed ) )
+   pageDisplay.configure( text=( '1 of ' + str( numberOfPages ) ) )
+   
+   # Set screen width and height to fit the frame
+   # screenWidth = statsFrame.winfo_width( ) + selectionFrame.winfo_width( ) + 30
+   # screenHeight = statsFrame.winfo_height( ) + 24
+   # root.geometry( str( screenWidth ) + 'x' + str( screenHeight ) )
+   
+   buttonsActive = True
 
 def initTable( table, statsFrame ):
    global tableEntries
    tableEntries = [ ]
    
-   for rowIndex in range( rowsDisplayed ):
+   for rowIndex in range( rowsDisplayed+1 ):
       # Initialize a list for this row of entries
       tableEntries.append( [ ] )
       
       for colIndex in range( len( table[ 0 ] ) ):
          if rowIndex == 0:
-            # Place a label in the first row
-            tableEntry = customtkinter.CTkButton( master=statsFrame, width=30, text=str( table[ rowIndex ][ colIndex ] ) )
+            # Place a button in the first row
+            tableEntry = customtkinter.CTkButton( master=statsFrame, width=30, text=str( table[ rowIndex ][ colIndex ] ), command=sortCallback )
          else:
             # Place a stat in the table
             tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text=str( table[ rowIndex ][ colIndex ] ), font=( 'Arial', 16, 'bold' ) )
@@ -140,7 +192,7 @@ def initTable( table, statsFrame ):
          if rowIndex == 0:
             # Add vertical padding on the first row
             tableEntry.grid( row=rowIndex, column=colIndex, padx=8, pady=8 )
-         if rowIndex == rowsDisplayed - 1:
+         if rowIndex == rowsDisplayed:
             # Add vertical padding on the bottom for last row
             tableEntry.grid( row=rowIndex, column=colIndex, padx=8, pady=( 0, 50 ) )
          else:
@@ -155,11 +207,11 @@ def updateStats( table, currentPage ):
       return
    
    firstRowDisplayed = ( currentPage - 1 ) * rowsDisplayed
-   print( firstRowDisplayed )
-   for rowIndex in range( rowsDisplayed ):
+   
+   for rowIndex in range( 1, rowsDisplayed + 1 ):
       for colIndex in range( len( table[ 0 ] ) ):
          tableRowIndex = rowIndex + firstRowDisplayed
-         if tableRowIndex > len( table ):
+         if tableRowIndex >= len( table ):
             print( formatString( table ) )
             return
          
@@ -167,6 +219,8 @@ def updateStats( table, currentPage ):
          
 def startGUI( defaultStats ):
    global currentStats
+   global screenHeight
+   global screenWidth
    currentStats = defaultStats
    
    customtkinter.set_appearance_mode( 'light' )
@@ -183,7 +237,7 @@ def startGUI( defaultStats ):
    downloadFrame = customtkinter.CTkFrame( master=root )
    downloadFrame.grid( row=9, column=0, padx=( 10, 0 ), pady=12, sticky=customtkinter.SW )
    
-   statsFrame = customtkinter.CTkFrame( master=root, width=( screenWidth - 175), height=screenHeight - 24 )
+   statsFrame = customtkinter.CTkFrame( master=root, width=( screenWidth - 175), height=650 )
    statsFrame.grid( row=0, column=1, rowspan=10, padx=10, pady=12, sticky=customtkinter.NW )
    statsFrame.grid_propagate( 0 )
    
@@ -194,14 +248,14 @@ def startGUI( defaultStats ):
    yearDropdown = customtkinter.CTkOptionMenu( master=selectionFrame, width=buttonWidth, values=years, command=yearDropdownCallback )
    yearDropdown.pack( pady=( 12, 0 ), padx=10 )
    
-   button = customtkinter.CTkButton( master=selectionFrame, width=buttonWidth, text='Load', command=lambda: loadCallback( categorySelected, yearSelected ) )
+   button = customtkinter.CTkButton( master=selectionFrame, width=buttonWidth, text='Load', command=lambda: loadCallback( categorySelected, yearSelected, root ) )
    button.pack( pady=( 12, 12 ), padx=10 )
    
    # Fill the download frame
    dropdown = customtkinter.CTkOptionMenu( master=downloadFrame, width=buttonWidth, values=fileTypes, command=fileTypeDropdownCallback )
    dropdown.pack( padx=10, pady=( 12, 0 ) )
    
-   button = customtkinter.CTkButton( master=downloadFrame, width=buttonWidth, text='Download', command=placeholderCommand )
+   button = customtkinter.CTkButton( master=downloadFrame, width=buttonWidth, text='Download', command=downloadCallback )
    button.pack( padx=10, pady=12 )
    
    # Fill the stats frame
@@ -215,16 +269,12 @@ def startGUI( defaultStats ):
    button.place( relx=0.98, rely=0.98, anchor=customtkinter.SE )
    # button.grid( row=len( defaultStats ), column=len( defaultStats[ 0 ] )-1 )
 
-   global numberOfPages
-   global rowsDisplayed
-   numberOfPages = int( len( defaultStats ) / rowsDisplayed )
-   
    global pageDisplay
-   pageDisplay = customtkinter.CTkLabel( master=statsFrame, text=str( currentPage ) + ' of ' + str( numberOfPages ), width=10 )
+   pageDisplay = customtkinter.CTkLabel( master=statsFrame, text='1 of 1', width=10 )
    pageDisplay.place( relx=0.5, rely=0.985, anchor=customtkinter.S )
    
-   # Set width and height to fit the frame
-   # screenWidth = statsFrame.winfo_width( ) + selectionFrame.winfo_width( ) + 30
-   # screenHeight = statsFrame.winfo_height( ) + 24
-   # root.geometry( str( screenWidth ) + 'x' + str( screenHeight ) )
+   displayPage( defaultStats )
+   
+   root.after( 1000, loadPages )
    root.mainloop( )
+   

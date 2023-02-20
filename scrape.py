@@ -24,15 +24,12 @@ fumbles2018_url = 'https://www.nfl.com/stats/player-stats/category/fumbles/2018/
 
 # GET DATA FROM NEXT PAGE
 # ----------------------------------------------------------------
-def getNextPageString( ):
-   return formatString( getNextPageTable( ) )
-
-def getNextPageTable( ):
+def getNextPage( isTableRequested ):
    global htmlObject
    
    if htmlObject == None:
       # If there is no table loaded, return error
-      print( 'getNextPageTable called with no current page' )
+      print( 'getNextPage called with no current page' )
       return None
    
    # Find the link of the 'Next Page' button
@@ -43,8 +40,11 @@ def getNextPageTable( ):
    if url == None:
       return None
    
-   # Return the table found by this url
-   return getPageFromURL( url )
+   if isTableRequested == True:
+      # Return the table found by this url
+      return getPageFromURL( url )
+   else:
+      return url
 
 # Appends the rows of the second table to the first table
 def extendTableWithoutFirstRow( firstTable, secondTable ):
@@ -64,11 +64,11 @@ def getTableFromURL( url ):
    table = getPageFromURL( url )
    
    # Add on stats from all pages
-   nextPageTable = getNextPageTable( )
+   nextPageTable = getNextPage( True )
    while nextPageTable != None:
-      if int( nextPageTable[ 1 ][ 1 ] ) > 0:
+      if float( nextPageTable[ 1 ][ 1 ] ) > 0:
          table = extendTableWithoutFirstRow( table, nextPageTable )
-         nextPageTable = getNextPageTable( )
+         nextPageTable = getNextPage( True )
       else:
          # Unnecessary stats where the first row has 0
          break
