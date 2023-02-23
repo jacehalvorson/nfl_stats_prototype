@@ -74,7 +74,6 @@ def pageChangeCallback( pageChange ):
    pageDisplay.configure( text=( str( currentPage ) + ' of ' + str( numberOfPages ) ) )
 
    updateStats( currentStats, currentPage )
-   # resizeWindow( )
 
 def loadCallback( categorySelected, yearSelected, window ):
    if buttonsActive == False:
@@ -136,11 +135,54 @@ def downloadCallback( fileNameEntry ):
    else:
       print( 'Download failed' )
 
-def sortCallback( ):
+def sortCallback( sortByCol ):
+   global currentStats
+   
    if buttonsActive == False:
       return
+      
+   # newTable will be built to replace currentStats, first put labels in
+   newTable = [ currentStats[ 0 ] ]
+   
+   # Get the sorted data to newTable (don't include labels when sorting)
+   stats = quickSort( currentStats[ 1: ], sortByCol )
+   stats.reverse( )
+   newTable.extend( stats )
 
-   print( 'Sort not implemented' )
+   # Update the screen
+   currentStats = newTable
+   updateStats( currentStats, currentPage )
+
+def quickSort( table, sortByCol ):
+   if len( table ) <= 1:
+      # Base case - nothing to sort with 0 or 1 rows
+      return table
+   
+   # Partition into sublists based on the middle element
+   partitionIndex = floor( len( table ) / 2 )
+   partitionRow = table[ partitionIndex ]
+   del table[ partitionIndex ]
+   
+   lessThanPartition = [ ]
+   moreThanPartition = [ ]
+   
+   # Check each row except the partition row
+   for row in table:
+      if float( row[ sortByCol ] ) < float( partitionRow[ sortByCol ] ):
+         lessThanPartition.append( row )
+      else:
+         moreThanPartition.append( row )
+      
+   # Sort the sublists
+   lessThanPartition = quickSort( lessThanPartition, sortByCol )
+   moreThanPartition = quickSort( moreThanPartition, sortByCol )
+   
+   # Put back the partition row in between the sublists
+   lessThanPartition.append( partitionRow )
+
+   # Add the lesser sublist and return the result
+   lessThanPartition.extend( moreThanPartition )
+   return lessThanPartition
 
 def displayPage( firstPage ):
    global currentStats
@@ -166,11 +208,12 @@ def loadPages( ):
    
    # Load the rest of the data
    nextPageURL = getNextPage( False )
-   currentStats = extendTableWithoutFirstRow( currentStats, getTableFromURL( nextPageURL ) )
-   
-   numberOfPages = int( floor( len( currentStats ) / rowsDisplayed ) )
-   pageDisplay.configure( text=( '1 of ' + str( numberOfPages ) ) )
+   if nextPageURL != None:
+      currentStats = extendTableWithoutFirstRow( currentStats, getTableFromURL( nextPageURL ) )
       
+      numberOfPages = int( floor( len( currentStats ) / rowsDisplayed ) )
+      pageDisplay.configure( text=( '1 of ' + str( numberOfPages ) ) )
+         
    buttonsActive = True
 
 def resizeWindow( ):
@@ -189,18 +232,24 @@ def initTable( table, statsFrame ):
    global tableEntries
    tableEntries = [ ]
    
-   for rowIndex in range( rowsDisplayed+1 ):
+   for rowIndex in range( rowsDisplayed+1 ):      
       # Initialize a list for this row of entries
       tableEntries.append( [ ] )
       
       for colIndex in range( len( table[ 0 ] ) ):
          if rowIndex == 0:
             # Place a button in the first row
-            tableEntry = customtkinter.CTkButton( master=statsFrame, width=30, text=str( table[ rowIndex ][ colIndex ] ), command=sortCallback )
-         else:
+            tableEntry = customtkinter.CTkButton( master=statsFrame, width=30, text=table[ rowIndex ][ colIndex ], command=lambda col=colIndex:sortCallback( col ) )
+         elif rowIndex < len( table ):
             # Place a stat in the table
             tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text=str( table[ rowIndex ][ colIndex ] ), font=( 'Arial', 16, 'bold' ) )
+         else:
+            # Place an entry with no text
+            tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text='', font=( 'Arial', 16, 'bold' ) )
          
+         if colIndex == 0:
+            tableEntry.configure( bg_color='gray' )   
+      
          tableEntries[ rowIndex ].append( tableEntry )
          
          # Place the entry on the GUI
@@ -221,15 +270,30 @@ def updateStats( table, currentPage ):
       print( 'Attempt to update stats with empty table' )
       return
    
+   # Change the labels to the new attributes
+   for colIndex in range( len( tableEntries[ 0 ] ) ):
+      if colIndex < len( table[ 0 ] ):
+         # Make sure this button is visible
+         tableEntries[ 0 ][ colIndex ].grid( )
+         # Use the text from the table
+         tableEntries[ 0 ][ colIndex ].configure( text=table[ 0 ][ colIndex ] )
+      else:
+         # No more attributes, display empty buttons
+         tableEntries[ 0 ][ colIndex ].grid_remove( )
+   
    firstRowDisplayed = ( currentPage - 1 ) * rowsDisplayed
    
+   # Fill the stats
    for rowIndex in range( 1, rowsDisplayed + 1 ):
-      for colIndex in range( len( table[ 0 ] ) ):
+      for colIndex in range( len( tableEntries[ 0 ] ) ):
+
          tableRowIndex = rowIndex + firstRowDisplayed
-         if tableRowIndex >= len( table ):
-            return
-         
-         tableEntries[ rowIndex ][ colIndex ].configure( text=str( table[ tableRowIndex ][ colIndex ] ) )
+         if tableRowIndex < len( table ) and colIndex < len( table[ 0 ] ):
+            # Stat here, display it
+            tableEntries[ rowIndex ][ colIndex ].configure( text=str( table[ tableRowIndex ][ colIndex ] ) )
+         else:
+            # Nothing in this column
+            tableEntries[ rowIndex ][ colIndex ].configure( text='' )
          
 def startGUI( defaultStats ):
    global currentStats
@@ -285,11 +349,9 @@ def startGUI( defaultStats ):
    
    button = customtkinter.CTkButton( master=statsFrame, text='Previous Page', width=buttonWidth, command=lambda:pageChangeCallback( -1 ) )
    button.place( relx=0.02, rely=0.98, anchor=customtkinter.SW )
-   # button.grid( row=len( defaultStats ), column=0 )
    
    button = customtkinter.CTkButton( master=statsFrame, text='Next Page', width=buttonWidth, command=lambda:pageChangeCallback( 1 ) )
    button.place( relx=0.98, rely=0.98, anchor=customtkinter.SE )
-   # button.grid( row=len( defaultStats ), column=len( defaultStats[ 0 ] )-1 )
 
    global pageDisplay
    pageDisplay = customtkinter.CTkLabel( master=statsFrame, text='1 of 1', width=10 )

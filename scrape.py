@@ -7,8 +7,6 @@ htmlObject = None
 
 BASE_URL = 'https://www.nfl.com/stats/player-stats/category/'
 QBS_URL = 'https://www.nfl.com/stats/player-stats/'
-fumbles2018_url = 'https://www.nfl.com/stats/player-stats/category/fumbles/2018/post/all/defensiveforcedfumble/desc'
-# url = 'https://www.nfl.com/stats/player-stats/category/passing/2022/REG/all/passingyards/DESC?aftercursor=AAAAGQAAABlAooAAAAAAADEAlQAQgIhBb1JRbEFFL0JUTXlNREEwWkRVMUxUVXlOamN0TURReE15MDRaRE0yTFdFMVl6Tm1aRGM0TVdGaE1GWitQeFpiSWpJd01qSWlMQ0pTUlVjaUxDSXpNakF3TkdRMU5TMDFNalkzTFRBME1UTXRPR1F6TmkxaE5XTXpabVEzT0RGaFlUQWlYUT09APB____m8H___-ZInE-gq8Tjy5XTH6-5lDzOAAQ='
 # ----------------------------------------------------------------
 
 

@@ -2,7 +2,7 @@ import csv
 
 MAX_NAME_LENGTH = 15
 
-# FORMATTING
+# FORMATTING TO STRING
 # ----------------------------------------------------------------
 def formatString( statMatrix ):
    if statMatrix == None:

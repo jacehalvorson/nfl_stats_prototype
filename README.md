@@ -25,7 +25,7 @@ python3 main.py
 
 > Stat Viewing
 
-Browse through pages of NFL data from every player with nonzero season stats in the selected category and year. Data can be requested back to 1993 from any of the following  categories.
+Browse through pages of NFL data from every player with nonzero season stats in the selected category and year. Data can be requested and sorted by any of the following categories going back to 1993.
 - Passing
 - Rushing
 - Receiving
@@ -44,15 +44,15 @@ Download a full table of the selected stats including every page that could be d
 - *.txt*
 - *.csv*
 
-## Planned improvements
+## Potential improvements
 
-> Sorting by attribute
-Each attribute is displayed as a button so it can be clicked to sort players from all pages based on a single stat and remain on the same page. If the current page is past the new number of pages, the last page should be selected.
+> Sorting by attribute backwards
+Once sorted by a particular attribute, one should be able to click the button again to reverse the order. Also ties should be resolved by player name
 
 > Data Export to .xlsb
 Only .txt and .csv are currently supported. This addition may require more packages to run the program.
 
-> Imporoved layout
+> Improved layout
 Considering placing buttons above and below the stats instead of on the left side.
 
 > Different data source
