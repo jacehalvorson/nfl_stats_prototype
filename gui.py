@@ -15,6 +15,12 @@ currentPage = 1
 numberOfPages = 1
 buttonsActive = False
 
+# Sort tracker variables
+DESCENDING = 0
+ASCENDING = 1
+currentSortCol = 1 # Default to sort by first stat (0 is player name)
+currentSortOrder = DESCENDING
+
 # Dropdown options
 # ----------------------------------------------------------------
 fileTypes = [
@@ -137,16 +143,27 @@ def downloadCallback( fileNameEntry ):
 
 def sortCallback( sortByCol ):
    global currentStats
+   global currentSortCol
+   global currentSortOrder
    
    if buttonsActive == False:
       return
+      
+   if sortByCol == currentSortCol:
+      # Table is already sorted by this column, reverse order
+      currentSortOrder = ASCENDING if currentSortOrder == DESCENDING else DESCENDING
+   else:
+      # Update global variables, default to descending order
+      currentSortCol = sortByCol
+      currentSortOrder = DESCENDING
       
    # newTable will be built to replace currentStats, first put labels in
    newTable = [ currentStats[ 0 ] ]
    
    # Get the sorted data to newTable (don't include labels when sorting)
    stats = quickSort( currentStats[ 1: ], sortByCol )
-   stats.reverse( )
+   if currentSortOrder == DESCENDING:
+      stats.reverse( )
    newTable.extend( stats )
 
    # Update the screen
@@ -245,10 +262,7 @@ def initTable( table, statsFrame ):
             tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text=str( table[ rowIndex ][ colIndex ] ), font=( 'Arial', 16, 'bold' ) )
          else:
             # Place an entry with no text
-            tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text='', font=( 'Arial', 16, 'bold' ) )
-         
-         if colIndex == 0:
-            tableEntry.configure( bg_color='gray' )   
+            tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text='', font=( 'Arial', 16, 'bold' ) )  
       
          tableEntries[ rowIndex ].append( tableEntry )
          
@@ -268,6 +282,9 @@ def updateStats( table, currentPage ):
    
    if table == None:
       print( 'Attempt to update stats with empty table' )
+      return
+   if currentPage <= 0 or currentPage > numberOfPages:
+      print( f'Invalid page number {currentPage} with {numberOfPages} pages total' )
       return
    
    # Change the labels to the new attributes
