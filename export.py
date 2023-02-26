@@ -1,4 +1,6 @@
 import csv
+import importlib.util
+import pyxll
 
 MAX_NAME_LENGTH = 15
 
@@ -50,7 +52,11 @@ def writeToFile( fileType, fileName, table ):
          writer = csv.writer( file )
          writer.writerows( table )
       elif fileType == '.xlsb':
-         print( 'Not implemented' )
+         checkPackageInstalled = 'pyxll'
+         if importlib.util.find_spec( checkPackageInstalled ) is None:
+            print( f'You need to install {checkPackageInstalled} to use this feature. Run this command to install it:\npip install {checkPackageInstalled}' )
+         else:
+            print( 'Writing to Excel' )
       else:
          print( f'Invalid file type {fileType}' )
          return
@@ -60,3 +66,13 @@ def writeToFile( fileType, fileName, table ):
    
    return False
 # ----------------------------------------------------------------
+
+def readFromCSV( filename ):
+   with open( filename, 'r' ) as file:
+      reader = csv.reader( file )
+      table = [ ]
+      
+      for row in reader:
+         table.append( row )
+      
+   return table

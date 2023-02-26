@@ -1,4 +1,11 @@
-import customtkinter
+import importlib.util
+
+checkPackageInstalled = 'customtkinter'
+if importlib.util.find_spec( checkPackageInstalled ) is None:
+   print( f'You need to install {checkPackageInstalled} to start the GUI. See README.md for more details or run this command to install it:\npip install {checkPackageInstalled}' )
+else:
+   import customtkinter
+
 from scrape import *
 from export import *
 from math import floor
@@ -20,6 +27,11 @@ DESCENDING = 0
 ASCENDING = 1
 currentSortCol = 1 # Default to sort by first stat (0 is player name)
 currentSortOrder = DESCENDING
+
+# GUI elements
+tableEntries = [ ]
+columnFrames = [ ]
+statsFrameColor = 'gray90'
 
 # Dropdown options
 # ----------------------------------------------------------------
@@ -47,9 +59,6 @@ categories = [
 ]
 categorySelected = categories[ 0 ]
 # ----------------------------------------------------------------
-
-def placeholderCommand( ):
-   print( 'Button pressed' )
    
 def fileTypeDropdownCallback( choice ):
    global fileTypeSelected
@@ -131,10 +140,11 @@ def loadCallback( categorySelected, yearSelected, window ):
 def downloadCallback( fileNameEntry ):
    global fileTypeSelected
    global currentStats
-   print( f'Downloading {fileNameSelected.get( )}{fileTypeSelected}' )
 
    if buttonsActive == False or fileTypeSelected not in fileTypes:
       return
+   
+   print( f'Downloading {fileNameSelected.get( )}{fileTypeSelected}' )
    
    if writeToFile( fileTypeSelected, fileNameSelected.get( ), currentStats ) == True:
       print( 'Download succeeded' )
@@ -161,7 +171,7 @@ def sortCallback( sortByCol ):
    newTable = [ currentStats[ 0 ] ]
    
    # Get the sorted data to newTable (don't include labels when sorting)
-   stats = quickSort( currentStats[ 1: ], sortByCol )
+   stats = quickSort( currentStats[ 1: ], sortByCol, 0 )
    if currentSortOrder == DESCENDING:
       stats.reverse( )
    newTable.extend( stats )
@@ -170,14 +180,16 @@ def sortCallback( sortByCol ):
    currentStats = newTable
    updateStats( currentStats, currentPage )
 
-def quickSort( table, sortByCol ):
+def quickSort( table, sortByCol, depth ):
    if len( table ) <= 1:
       # Base case - nothing to sort with 0 or 1 rows
+      print( f'Sort bottomed out at depth {depth}' )
       return table
    
    # Partition into sublists based on the middle element
    partitionIndex = floor( len( table ) / 2 )
    partitionRow = table[ partitionIndex ]
+   partitionValue = partitionRow[ sortByCol ]
    del table[ partitionIndex ]
    
    lessThanPartition = [ ]
@@ -185,14 +197,23 @@ def quickSort( table, sortByCol ):
    
    # Check each row except the partition row
    for row in table:
-      if float( row[ sortByCol ] ) < float( partitionRow[ sortByCol ] ):
+      value = row[ sortByCol ]
+      if value[ 0 ].isdigit( ):
+         # Value starts with a digit
+         isValueLessThanPartitionValue = ( float( value ) < float( partitionValue ) )
+      else:
+         # Value starts with a letter
+         # Flip compare direction so names start with A and end with Z
+         isValueLessThanPartitionValue = ( value > partitionValue )
+
+      if isValueLessThanPartitionValue:
          lessThanPartition.append( row )
       else:
          moreThanPartition.append( row )
       
    # Sort the sublists
-   lessThanPartition = quickSort( lessThanPartition, sortByCol )
-   moreThanPartition = quickSort( moreThanPartition, sortByCol )
+   lessThanPartition = quickSort( lessThanPartition, sortByCol, depth+1 )
+   moreThanPartition = quickSort( moreThanPartition, sortByCol, depth+1 )
    
    # Put back the partition row in between the sublists
    lessThanPartition.append( partitionRow )
@@ -245,40 +266,65 @@ def resizeWindow( ):
    screenHeight = statsFrame.winfo_height( ) + 24
    root.geometry( str( screenWidth ) + 'x' + str( screenHeight ) )
 
-def initTable( table, statsFrame ):
+def initStatsFrame( table, statsFrame ):
+   global currentSortCol
    global tableEntries
-   tableEntries = [ ]
+   global columnFrames
+   global rowNumbers
+   global statsFrameColor
+   statsFrameColor = statsFrame.cget( 'fg_color' )
    
-   for rowIndex in range( rowsDisplayed+1 ):      
-      # Initialize a list for this row of entries
+   # Initialize lists for the objects
+   columnFrames = [ ]
+   tableEntries = [ ]
+   for rowIndex in range( len( table ) ):
       tableEntries.append( [ ] )
+   
+   # Make objects and put them on the screen
+   # Make a frame for the first column
+   columnFrame = customtkinter.CTkFrame( master=statsFrame, width=30, fg_color=statsFrameColor )
+   columnFrame.grid( row=0, column=0, pady=( 40, 0 ), padx=4 )
+   rowNumbers = [ ]
+   for rowIndex in range( 1, rowsDisplayed+1 ):
+      number = customtkinter.CTkLabel( master=columnFrame, text=rowIndex, font=( 'Arial', 12 ) )
+      number.grid( row=rowIndex+1, column=0 )
+      rowNumbers.append( number )
+   
+   for colIndex in range( len( table[ 0 ] ) ):      
+      # Make a frame for this column
+      columnFrame = customtkinter.CTkFrame( master=statsFrame )
+      columnFrame.grid( row=0, column=colIndex+1 )
+
+      # Add it to the global list so the color can be changed later
+      columnFrames.append( columnFrame )
       
-      for colIndex in range( len( table[ 0 ] ) ):
-         if rowIndex == 0:
-            # Place a button in the first row
-            tableEntry = customtkinter.CTkButton( master=statsFrame, width=30, text=table[ rowIndex ][ colIndex ], command=lambda col=colIndex:sortCallback( col ) )
-         elif rowIndex < len( table ):
-            # Place a stat in the table
-            tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text=str( table[ rowIndex ][ colIndex ] ), font=( 'Arial', 16, 'bold' ) )
-         else:
-            # Place an entry with no text
-            tableEntry = customtkinter.CTkLabel( master=statsFrame, width=20, text='', font=( 'Arial', 16, 'bold' ) )  
+      # Put the attribute label at the top of the column
+      tableEntry = customtkinter.CTkButton( master=columnFrame, width=30, text=table[ 0 ][ colIndex ], command=lambda sortByCol=colIndex : sortCallback( sortByCol ) )
+      tableEntry.grid( row=0, column=0, padx=8, pady=6 )
+      tableEntries[ 0 ].append( tableEntry )
       
+      # Fill the rest of the column frame with stats
+      for rowIndex in range( 1, rowsDisplayed+1 ):
+         tableEntry = customtkinter.CTkLabel( master=columnFrame, text=table[ rowIndex ][ colIndex ], font=( 'Arial', 16, 'bold' ) )
+         tableEntry.grid( row=rowIndex, column=0, padx=8 )
          tableEntries[ rowIndex ].append( tableEntry )
-         
-         # Place the entry on the GUI
-         if rowIndex == 0:
-            # Add vertical padding on the first row
-            tableEntry.grid( row=rowIndex, column=colIndex, padx=8, pady=8 )
-         if rowIndex == rowsDisplayed:
-            # Add vertical padding on the bottom for last row
-            tableEntry.grid( row=rowIndex, column=colIndex, padx=8, pady=( 0, 50 ) )
-         else:
-            # Don't add padding
-            tableEntry.grid( row=rowIndex, column=colIndex, padx=8 )
+   # end of for colIndex in range( len( table[ 0 ] ) )
+   
+   button = customtkinter.CTkButton( master=statsFrame, text='Previous Page', width=buttonWidth, command=lambda:pageChangeCallback( -1 ) )
+   button.place( relx=0.02, rely=0.98, anchor=customtkinter.SW )
+   
+   button = customtkinter.CTkButton( master=statsFrame, text='Next Page', width=buttonWidth, command=lambda:pageChangeCallback( 1 ) )
+   button.place( relx=0.98, rely=0.98, anchor=customtkinter.SE )
+
+   global pageDisplay
+   pageDisplay = customtkinter.CTkLabel( master=statsFrame, text='1 of 1', width=10 )
+   pageDisplay.place( relx=0.5, rely=0.985, anchor=customtkinter.S )          
                
 def updateStats( table, currentPage ):
    global tableEntries
+   global columnFrames
+   global rowNumbers
+   global statsFrameColor
    
    if table == None:
       print( 'Attempt to update stats with empty table' )
@@ -301,22 +347,34 @@ def updateStats( table, currentPage ):
    firstRowDisplayed = ( currentPage - 1 ) * rowsDisplayed
    
    # Fill the stats
-   for rowIndex in range( 1, rowsDisplayed + 1 ):
-      for colIndex in range( len( tableEntries[ 0 ] ) ):
+   for rowIndex in range( 1, rowsDisplayed+1 ):
+      tableRowIndex = rowIndex + firstRowDisplayed
+      rowNumbers[ rowIndex-1 ].configure( text=str( tableRowIndex ) )
 
-         tableRowIndex = rowIndex + firstRowDisplayed
+      for colIndex in range( len( tableEntries[ 0 ] ) ):  
          if tableRowIndex < len( table ) and colIndex < len( table[ 0 ] ):
             # Stat here, display it
             tableEntries[ rowIndex ][ colIndex ].configure( text=str( table[ tableRowIndex ][ colIndex ] ) )
          else:
             # Nothing in this column
             tableEntries[ rowIndex ][ colIndex ].configure( text='' )
+            
+   # Update the background color of the columns in case it has changed
+   for colIndex, columnFrame in enumerate( columnFrames ):
+      if colIndex == currentSortCol:
+         columnFrame.configure( fg_color='gray81' )
+      else:
+         columnFrame.configure( fg_color=statsFrameColor )
          
 def startGUI( defaultStats ):
    global currentStats
    global screenHeight
    global screenWidth
    currentStats = defaultStats
+   
+   checkPackageInstalled = 'customtkinter'
+   if importlib.util.find_spec( checkPackageInstalled ) is None:
+      return
    
    customtkinter.set_appearance_mode( 'light' )
    customtkinter.set_default_color_theme( 'green' )
@@ -335,7 +393,7 @@ def startGUI( defaultStats ):
    downloadFrame.grid( row=9, column=0, padx=( 10, 0 ), pady=12, sticky=customtkinter.SW )
    
    global statsFrame
-   statsFrame = customtkinter.CTkFrame( master=root, width=( screenWidth - 175), height=650 )
+   statsFrame = customtkinter.CTkFrame( master=root, width=( screenWidth - 175 ), height=650 )
    statsFrame.grid( row=0, column=1, rowspan=10, padx=10, pady=12, sticky=customtkinter.NW )
    statsFrame.grid_propagate( 0 )
    
@@ -362,21 +420,11 @@ def startGUI( defaultStats ):
    button.pack( padx=10, pady=12 )
    
    # Fill the stats frame
-   initTable( defaultStats, statsFrame )
-   
-   button = customtkinter.CTkButton( master=statsFrame, text='Previous Page', width=buttonWidth, command=lambda:pageChangeCallback( -1 ) )
-   button.place( relx=0.02, rely=0.98, anchor=customtkinter.SW )
-   
-   button = customtkinter.CTkButton( master=statsFrame, text='Next Page', width=buttonWidth, command=lambda:pageChangeCallback( 1 ) )
-   button.place( relx=0.98, rely=0.98, anchor=customtkinter.SE )
-
-   global pageDisplay
-   pageDisplay = customtkinter.CTkLabel( master=statsFrame, text='1 of 1', width=10 )
-   pageDisplay.place( relx=0.5, rely=0.985, anchor=customtkinter.S )
-   
+   initStatsFrame( defaultStats, statsFrame )
+   # Display the first page and the rest will load after the window opens
    displayPage( defaultStats )
    
+   # Display GUI and load extra after 750 ms
    root.after( 50, resizeWindow )
    root.after( 750, loadPages )
    root.mainloop( )
-   

@@ -2,17 +2,15 @@
 
 
 ## Instructions
-This application requires Python version 3.0 or later along with extensions **tkinter** and **customtkinter**. The extensions can be downloaded with the following commands:
+This application requires Python version 3.0 or later along with the **customtkinter** extension. The extensions can be downloaded with the following commands:
 
 ### Linux/MacOS
 ```
-pip install tk
 pip install customtkinter
 ```
 
 ### Windows
 ```
-pip3 install tk
 pip3 install customtkinter
 ```
 
@@ -46,14 +44,20 @@ Download a full table of the selected stats including every page that could be d
 
 ## Potential improvements
 
-> Sorting by attribute backwards
-Once sorted by a particular attribute, one should be able to click the button again to reverse the order. Also ties should be resolved by player name
+> Non-recursive sorting algorithm
+Currently a worst-case quicksort can exceed Python's recursive depth limit
+
+> Alternating row colors
+Rows should alternate color so lining up stats with players is easier
 
 > Data Export to .xlsb
-Only .txt and .csv are currently supported. This addition may require more packages to run the program.
+Only .txt and .csv are currently supported. The framework to check for the pyxll package is implemented but the file I/O isn't
 
 > Improved layout
 Considering placing buttons above and below the stats instead of on the left side.
+
+> Bugs with fixed table width
+Too many attributes with wide enough names extends beyond the end of the window
 
 > Different data source
 Collecting data drom a different source would allow a full data download instead of loading one page at a time, which would significantly improve load times.

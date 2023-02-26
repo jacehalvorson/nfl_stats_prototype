@@ -1,13 +1,12 @@
-from gui import *
+from gui import startGUI
+from export import writeToFile
+from scrape import getPageFromURL, QBS_URL
 
 def main( ):
    # Retrieve default stats (passing 2022)
    table = getPageFromURL( QBS_URL )
-   # table = [ ['A', 'B', 'C', 'D'], \
-   #           [0, 1, 2, 3], \
-   #           [1, 2, 3, 4], \
-   #           [2, 3, 4, 0], \
-   #           [3, 4, 0, 1], ]
+   
+   # table = readFromCSV( 'Passing2022.csv' )
 
    # Start GUI and pass in function pointers for buttons
    startGUI( table )
