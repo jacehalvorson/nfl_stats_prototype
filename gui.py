@@ -3,12 +3,15 @@ import importlib.util
 checkPackageInstalled = 'customtkinter'
 if importlib.util.find_spec( checkPackageInstalled ) is None:
    print( f'You need to install {checkPackageInstalled} to start the GUI. See README.md for more details or run this command to install it:\npip install {checkPackageInstalled}' )
+   exit( )
 else:
    import customtkinter
 
 from scrape import *
 from export import *
+from sort import *
 from math import floor
+
 
 # Constants
 screenWidth = 1200
@@ -171,7 +174,7 @@ def sortCallback( sortByCol ):
    newTable = [ currentStats[ 0 ] ]
    
    # Get the sorted data to newTable (don't include labels when sorting)
-   stats = quickSort( currentStats[ 1: ], sortByCol, 0 )
+   stats = mergeSort( currentStats[ 1: ], sortByCol, 0 )
    if currentSortOrder == DESCENDING:
       stats.reverse( )
    newTable.extend( stats )
@@ -180,57 +183,19 @@ def sortCallback( sortByCol ):
    currentStats = newTable
    updateStats( currentStats, currentPage )
 
-def quickSort( table, sortByCol, depth ):
-   if len( table ) <= 1:
-      # Base case - nothing to sort with 0 or 1 rows
-      print( f'Sort bottomed out at depth {depth}' )
-      return table
-   
-   # Partition into sublists based on the middle element
-   partitionIndex = floor( len( table ) / 2 )
-   partitionRow = table[ partitionIndex ]
-   partitionValue = partitionRow[ sortByCol ]
-   del table[ partitionIndex ]
-   
-   lessThanPartition = [ ]
-   moreThanPartition = [ ]
-   
-   # Check each row except the partition row
-   for row in table:
-      value = row[ sortByCol ]
-      if value[ 0 ].isdigit( ):
-         # Value starts with a digit
-         isValueLessThanPartitionValue = ( float( value ) < float( partitionValue ) )
-      else:
-         # Value starts with a letter
-         # Flip compare direction so names start with A and end with Z
-         isValueLessThanPartitionValue = ( value > partitionValue )
-
-      if isValueLessThanPartitionValue:
-         lessThanPartition.append( row )
-      else:
-         moreThanPartition.append( row )
-      
-   # Sort the sublists
-   lessThanPartition = quickSort( lessThanPartition, sortByCol, depth+1 )
-   moreThanPartition = quickSort( moreThanPartition, sortByCol, depth+1 )
-   
-   # Put back the partition row in between the sublists
-   lessThanPartition.append( partitionRow )
-
-   # Add the lesser sublist and return the result
-   lessThanPartition.extend( moreThanPartition )
-   return lessThanPartition
-
 def displayPage( firstPage ):
    global currentStats
    global currentPage
    global buttonsActive
+   global currentSortCol
+   global currentSortOrder
    
    # Disable buttons while data laods
    buttonsActive = False
    
    currentPage = 1
+   currentSortCol = 1
+   currentSortOrder = DESCENDING
    updateStats( firstPage, currentPage )
 
    pageDisplay.configure( text='1 of 1' )
@@ -252,6 +217,7 @@ def loadPages( ):
       numberOfPages = int( floor( len( currentStats ) / rowsDisplayed ) )
       pageDisplay.configure( text=( '1 of ' + str( numberOfPages ) ) )
          
+   # Re-enable buttons now that pages are loaded
    buttonsActive = True
 
 def resizeWindow( ):
@@ -304,7 +270,8 @@ def initStatsFrame( table, statsFrame ):
       tableEntries[ 0 ].append( tableEntry )
       
       # Fill the rest of the column frame with stats
-      for rowIndex in range( 1, rowsDisplayed+1 ):
+      numRows = min( rowsDisplayed+1, len( table ) )
+      for rowIndex in range( 1, numRows ):
          tableEntry = customtkinter.CTkLabel( master=columnFrame, text=table[ rowIndex ][ colIndex ], font=( 'Arial', 16, 'bold' ) )
          tableEntry.grid( row=rowIndex, column=0, padx=8 )
          tableEntries[ rowIndex ].append( tableEntry )
@@ -347,7 +314,8 @@ def updateStats( table, currentPage ):
    firstRowDisplayed = ( currentPage - 1 ) * rowsDisplayed
    
    # Fill the stats
-   for rowIndex in range( 1, rowsDisplayed+1 ):
+   numRows = min( rowsDisplayed+1, len( table ) )
+   for rowIndex in range( 1, numRows ) :
       tableRowIndex = rowIndex + firstRowDisplayed
       rowNumbers[ rowIndex-1 ].configure( text=str( tableRowIndex ) )
 
@@ -359,6 +327,13 @@ def updateStats( table, currentPage ):
             # Nothing in this column
             tableEntries[ rowIndex ][ colIndex ].configure( text='' )
             
+   updateColumnColors( )
+            
+def updateColumnColors( ):
+   global columnFrames
+   global statsFrameColor
+   global currentSortCol
+   
    # Update the background color of the columns in case it has changed
    for colIndex, columnFrame in enumerate( columnFrames ):
       if colIndex == currentSortCol:
