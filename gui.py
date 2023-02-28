@@ -252,7 +252,11 @@ def initStatsFrame( table, statsFrame ):
    columnFrame.grid( row=0, column=0, pady=( 40, 0 ), padx=4 )
    rowNumbers = [ ]
    for rowIndex in range( 1, rowsDisplayed+1 ):
-      number = customtkinter.CTkLabel( master=columnFrame, text=rowIndex, font=( 'Arial', 12 ) )
+      if rowIndex % 2 == 0:
+         foregroundColor = 'gray80'
+      else:
+         foregroundColor = statsFrameColor
+      number = customtkinter.CTkLabel( master=columnFrame, text=rowIndex, font=( 'Arial', 12 ), fg_color=foregroundColor )
       number.grid( row=rowIndex+1, column=0 )
       rowNumbers.append( number )
    
@@ -272,8 +276,14 @@ def initStatsFrame( table, statsFrame ):
       # Fill the rest of the column frame with stats
       numRows = min( rowsDisplayed+1, len( table ) )
       for rowIndex in range( 1, numRows ):
-         tableEntry = customtkinter.CTkLabel( master=columnFrame, text=table[ rowIndex ][ colIndex ], font=( 'Arial', 16, 'bold' ) )
-         tableEntry.grid( row=rowIndex, column=0, padx=8 )
+         if rowIndex % 2 == 0:
+            # Even rows have darker color
+            tableEntry = customtkinter.CTkLabel( master=columnFrame, text=table[ rowIndex ][ colIndex ], font=( 'Arial', 16, 'bold' ), fg_color='gray80' )
+         else:
+            # Odd rows have no color (fits in with background)
+            tableEntry = customtkinter.CTkLabel( master=columnFrame, text=table[ rowIndex ][ colIndex ], font=( 'Arial', 16, 'bold' ) )
+         
+         tableEntry.grid( row=rowIndex, column=0, padx=0 )
          tableEntries[ rowIndex ].append( tableEntry )
    # end of for colIndex in range( len( table[ 0 ] ) )
    
@@ -337,7 +347,7 @@ def updateColumnColors( ):
    # Update the background color of the columns in case it has changed
    for colIndex, columnFrame in enumerate( columnFrames ):
       if colIndex == currentSortCol:
-         columnFrame.configure( fg_color='gray81' )
+         columnFrame.configure( fg_color='gray76' )
       else:
          columnFrame.configure( fg_color=statsFrameColor )
          

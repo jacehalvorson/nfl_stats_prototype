@@ -44,9 +44,6 @@ Download a full table of the selected stats including every page that could be d
 
 ## Potential improvements
 
-> Non-recursive sorting algorithm
-Currently a worst-case quicksort can exceed Python's recursive depth limit
-
 > Alternating row colors
 Rows should alternate color so lining up stats with players is easier
 
