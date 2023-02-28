@@ -1,6 +1,5 @@
 import csv
 import importlib.util
-import pyxll
 
 MAX_NAME_LENGTH = 15
 
@@ -41,22 +40,37 @@ def formatString( statMatrix ):
 # FILE WRITING
 # ----------------------------------------------------------------
 def writeToFile( fileType, fileName, table ):
-   if fileName == ' ':
+   if fileName == '' or len( table ) == 0:
       return False
    
    with open( fileName + fileType, 'w' ) as file:
       if fileType == '.txt':
          file.write( formatString( table ) )
          file.write( '\n' )
+         
       elif fileType == '.csv':
          writer = csv.writer( file )
          writer.writerows( table )
-      elif fileType == '.xlsb':
-         checkPackageInstalled = 'pyxll'
+         
+      elif fileType == '.xlsx':
+         # Make sure the xlsxwrite package is installed, otherwise return error
+         checkPackageInstalled = 'xlsxwriter'
          if importlib.util.find_spec( checkPackageInstalled ) is None:
-            print( f'You need to install {checkPackageInstalled} to use this feature. Run this command to install it:\npip install {checkPackageInstalled}' )
-         else:
-            print( 'Writing to Excel' )
+            print( f'You need to install {checkPackageInstalled} to write to .xlsx files. See README.md for more details or run this command to install it:\npip install {checkPackageInstalled}' )
+            return False
+
+         print( 'Writing to Excel' )
+         import xlsxwriter         
+         workbook = xlsxwriter.Workbook( fileName + fileType )
+         
+         worksheet = workbook.add_worksheet( )
+         
+         for rowIndex, row in enumerate( table ):
+            for colIndex in range( len( row ) ):
+               worksheet.write( rowIndex, colIndex, row[ colIndex ] )
+         
+         workbook.close( )
+
       else:
          print( f'Invalid file type {fileType}' )
          return

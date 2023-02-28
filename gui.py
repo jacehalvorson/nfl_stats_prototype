@@ -8,8 +8,8 @@ else:
    import customtkinter
 
 from scrape import *
-from export import *
 from sort import *
+from export import writeToFile
 from math import floor
 
 
@@ -40,6 +40,7 @@ statsFrameColor = 'gray90'
 # ----------------------------------------------------------------
 fileTypes = [
    '.csv',
+   '.xlsx',
    '.txt'
 ]
 fileTypeSelected = fileTypes[ 0 ]

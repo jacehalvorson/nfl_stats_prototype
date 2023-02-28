@@ -2,14 +2,14 @@
 
 
 ## Instructions
-This application requires Python version 3.0 or later along with the **customtkinter** extension. The extensions can be downloaded with the following commands:
+This application requires Python version 3.0 or later along with the **customtkinter** extension. The extension can be downloaded with the following command:
 
-### Linux/MacOS
+> Linux/MacOS
 ```
 pip install customtkinter
 ```
 
-### Windows
+> Windows
 ```
 pip3 install customtkinter
 ```
@@ -39,18 +39,15 @@ Browse through pages of NFL data from every player with nonzero season stats in 
 > Data Export
 
 Download a full table of the selected stats including every page that could be displayed. This data can be formatted to any of the following file formats.
-- *.txt*
+- *.xlsx* (xlsxwriter package must be installed)
 - *.csv*
+- *.txt*
 
 ## Potential improvements
 
 > Alternating row colors
 
 Rows should alternate color so lining up stats with players is easier
-
-> Data Export to .xlsb
-
-Only .txt and .csv are currently supported. The framework to check for the pyxll package is implemented but the file I/O is not
 
 > Improved layout
 
