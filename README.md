@@ -45,16 +45,21 @@ Download a full table of the selected stats including every page that could be d
 ## Potential improvements
 
 > Alternating row colors
+
 Rows should alternate color so lining up stats with players is easier
 
 > Data Export to .xlsb
-Only .txt and .csv are currently supported. The framework to check for the pyxll package is implemented but the file I/O isn't
+
+Only .txt and .csv are currently supported. The framework to check for the pyxll package is implemented but the file I/O is not
 
 > Improved layout
+
 Considering placing buttons above and below the stats instead of on the left side.
 
 > Bugs with fixed table width
+
 Too many attributes with wide enough names extends beyond the end of the window
 
 > Different data source
+
 Collecting data drom a different source would allow a full data download instead of loading one page at a time, which would significantly improve load times.
